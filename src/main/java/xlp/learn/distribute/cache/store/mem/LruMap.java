@@ -1,4 +1,4 @@
-package xlp.learn.distribute.cache.map;
+package xlp.learn.distribute.cache.store.mem;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package xlp.learn.distribute.cache.net;
+package xlp.learn.distribute.cache.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -9,15 +9,16 @@ import java.util.Map;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xlp.learn.distribute.cache.Lifecycle;
-import xlp.learn.distribute.cache.point.Handler;
+import xlp.learn.distribute.cache.handler.Lifecycle;
+import xlp.learn.distribute.cache.handler.Handler;
+import xlp.learn.distribute.cache.handler.ServerSocketHandler;
 
 /**
  * Created by lpxie on 2016/8/23.
  */
-public class Server implements Lifecycle {
+public class DcacheServer implements Lifecycle {
     
-    private static Logger logger = LoggerFactory.getLogger(Server.class);
+    private static Logger logger = LoggerFactory.getLogger(DcacheServer.class);
     
     private static Map<String, Handler> activeConnections = new HashMap<>();
     
@@ -27,23 +28,33 @@ public class Server implements Lifecycle {
     
     private boolean running = false;
     
+    public DcacheServer(int port){
+        
+        this.port = port;
+    }
+    
     public void init() {
         
         try {
+           
             serverSocket = new ServerSocket(port);
+           
             running = true;
+           
             new Thread(new Runnable() {
                 
                 @Override
                 public void run() {
                     
-                    logger.info("start Server...");
+                    logger.info("server star success");
                     while (running) {
                         try {
                             Socket client = serverSocket.accept();
                             client.setKeepAlive(true);
                             client.setTcpNoDelay(true);
-                            Handler handler = new ServerSocketPoint(client);
+                            Handler handler = new ServerSocketHandler(client);
+                            //这里每次新一个线程，客服端一直端口然后连接的话，线程数量会非常多
+                            //使用线程池
                             new Thread(handler).start();
                             String clientIp = client.getRemoteSocketAddress().toString()
                                 .split(":")[0].substring(1);
@@ -55,6 +66,7 @@ public class Server implements Lifecycle {
                     }
                 }
             }).start();
+            
         } catch (IOException e) {
             logger.warn("server start failed by " + ExceptionUtils.getStackTrace(e));
         }

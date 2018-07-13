@@ -1,4 +1,4 @@
-package xlp.learn.distribute.cache.manager;
+package xlp.learn.distribute.cache.store;
 
 import java.util.Map;
 

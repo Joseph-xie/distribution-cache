@@ -9,10 +9,10 @@ import java.io.OutputStream;
  */
 public interface Protocol {
     
-    public byte[] read(InputStream inputStream, byte[] bytes) throws IOException;
+    byte[] read(InputStream inputStream, byte[] bytes) throws IOException;
     
-    public boolean write(OutputStream outputStream, String message, byte[] types);
+    boolean write(OutputStream outputStream, String message, byte[] types);
     
-    public boolean write(OutputStream outputStream, byte[] bytes, byte[] types);
+    boolean write(OutputStream outputStream, byte[] bytes, byte[] types);
     
 }

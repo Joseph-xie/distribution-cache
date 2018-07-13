@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * byte数据类型是8位、有符号的，以二进制补码表示的整数； 最小值是-128（-2^7）； 最大值是127（2^7-1） 例子：byte a = 100，byte b = -50。
+ * byte数据类型是8位、有符号的，以二进制补码表示的整数； 最小值是-128（-2^7）;
+ * 最大值是127（2^7-1）
+ * 举例：byte a = 100，byte b = -50。
  * Created by lpxie on 2016/8/23.
  */
 public abstract class AbstractProtocol implements Protocol {
@@ -21,90 +23,111 @@ public abstract class AbstractProtocol implements Protocol {
     private final byte[] end = new byte[]{0014, 0015, 0016};
     
     @Override
-    public byte[] read(InputStream inputStream, byte[] bytes) throws IOException {
+    public byte[] read(InputStream inputStream, byte[] typeBytes) throws IOException {
         
         byte[] dst = new byte[0];
         
         byte[] startOrEnd = new byte[3];
+        
         byte[] lenByte = new byte[4];//length is 4 byte
-        try {
-            //check start
-            inputStream.read(startOrEnd);
-            boolean isStart = checkStart(startOrEnd);
-            if (!isStart) {
-                logger.warn("data is not completely,do not execute:" + new String(startOrEnd));
-                return dst;
-            }
-            //check type
-            inputStream.read(bytes);
-            //uuid
-            int uuidLength = AbstractType.uuidbyteslength;
-            byte[] uuidByte = new byte[uuidLength];
-            inputStream.read(uuidByte, 0, uuidLength);
-            //read data
-            inputStream.read(lenByte);
-            int realLength = byteArrayToInt(lenByte);
-            if (realLength > 0) {
-                byte[] messByte = new byte[uuidLength + realLength];
-                inputStream.read(messByte, uuidLength, realLength);//first is type
-                //putMap uuid
-                for (int i = 0; i < uuidLength; i++) {
-                    messByte[i] = uuidByte[i];
-                }
-                dst = messByte;
-            }
-            //check end ,reuse sync
-            inputStream.read(startOrEnd);
-            boolean isEnd = checkEnd(startOrEnd);
-            if (!isEnd) {
-                logger.warn("not complete data");
-                return new byte[0];
-            }
-        } catch (IOException e) {
-            logger.warn("AbstractProtocol.read call wrong by " + ExceptionUtils.getStackTrace(e));
-            throw new IOException(e);
+        
+        //check start
+        inputStream.read(startOrEnd);
+    
+        boolean isStart = checkStart(startOrEnd);
+    
+        if (!isStart) {
+    
+            logger.warn("data is not completely,do not execute:" + new String(startOrEnd));
+    
+            return dst;
         }
+        
+        //check type
+        inputStream.read(typeBytes);
+
+        //read data
+        inputStream.read(lenByte);
+        
+        int realLength = byteArrayToInt(lenByte);
+        
+        if (realLength > 0) {
+        
+            byte[] messByte = new byte[realLength];
+        
+            inputStream.read(messByte, 0, realLength);//first is type
+      
+            dst = messByte;
+        }
+       
+        //check end ,reuse sync
+        inputStream.read(startOrEnd);
+        
+        boolean isEnd = checkEnd(startOrEnd);
+        
+        if (!isEnd) {
+        
+            logger.warn("not complete data");
+        
+            return new byte[0];
+        }
+        
         return dst;
     }
     
     public boolean write(OutputStream outputStream, String message, byte[] types) {
         
         try {
-            byte[] bytes = message.getBytes("utf-8");//
+            
+            byte[] bytes = message.getBytes("utf-8");
+            
             write(outputStream, bytes, types);
+            
             return true;
+        
         } catch (UnsupportedEncodingException e) {
+        
             logger.warn("AbstractProtocol.write message convert to byte by 'utf-8' failed by "
                             + ExceptionUtils.getStackTrace(e));
         }
+        
         return false;
     }
     
     public boolean write(OutputStream outputStream, byte[] bytes, byte[] types) {
         
         try {
-            outputStream.write(start);//同步校验位
+    
+            //同步校验位
+            outputStream.write(start);
+            
             outputStream.write(types);
-            outputStream.write(SelfType.uuid);
             
             write(outputStream, bytes);
             
             outputStream.write(end);
+            
             outputStream.flush();
-            //add md5 校验位 to do ...
+
             return true;
+            
         } catch (IOException e) {
+            
             logger.warn("AbstractProtocol.write byte array write to outputStream failed by "
                             + ExceptionUtils.getStackTrace(e));
         }
+        
         return false;
     }
     
     private void write(OutputStream outputStream, byte[] bytes) throws IOException {
         
         int length = bytes.length;
+        
         byte[] lengthByte = intToBytes(length);
+        
         outputStream.write(lengthByte);
+        
         outputStream.write(bytes);
     }
     

@@ -6,14 +6,14 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xlp.learn.distribute.cache.util.FNV132Hash;
+import xlp.learn.distribute.cache.route.support.FNV132Hash;
 
 /**
  * Created by lpxie on 2016/8/27.
  */
 public class ConsistentHashingWithVN {
     
-    private static final int VIRTUAL_NODES = 100;
+    private static final int VIRTUAL_NODES = 10;
     
     static FNV132Hash fnv132Hash = new FNV132Hash();
     

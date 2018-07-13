@@ -2,7 +2,7 @@ package xlp.learn.distribute.cache.monitor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xlp.learn.distribute.cache.thread.IdentityThread;
+import xlp.learn.distribute.cache.monitor.thread.IdentityThread;
 
 /**
  * Created by lpxie on 2016/8/24.

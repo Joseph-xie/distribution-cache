@@ -1,9 +1,9 @@
-package xlp.learn.distribute.cache.manager;
+package xlp.learn.distribute.cache.store;
 
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xlp.learn.distribute.cache.map.LruMap;
+import xlp.learn.distribute.cache.store.mem.LruMap;
 
 /**
  * Created by lpxie on 2016/8/23.

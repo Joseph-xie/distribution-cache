@@ -1,7 +1,5 @@
-package xlp.learn.distribute.cache.util;
+package xlp.learn.distribute.cache.route.support;
 
-
-import xlp.learn.distribute.cache.Hash;
 
 /**
  * Created by lpxie on 2016/8/27.

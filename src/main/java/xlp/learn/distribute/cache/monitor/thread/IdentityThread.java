@@ -1,4 +1,4 @@
-package xlp.learn.distribute.cache.thread;
+package xlp.learn.distribute.cache.monitor.thread;
 
 /**
  * Created by lpxie on 2016/8/25.
