@@ -1,7 +1,7 @@
-package xlp.learn.distribute.cache.sample;
+package xlp.learn.distribute.cache.oiosample;
 
 import xlp.learn.distribute.cache.store.ManagerInstance;
-import xlp.learn.distribute.cache.server.DcacheServer;
+import xlp.learn.distribute.cache.oio.DcacheServer;
 
 public class ServerMain {
     

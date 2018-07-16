@@ -47,7 +47,7 @@ public class ClientSocketHandler extends AbstractSocketHandler {
                 
             } else {
         
-                logger.info(selfIp + " server is ok");
+//                logger.info(selfIp + " server is ok");
             }
         
         } catch (Exception e) {
@@ -64,13 +64,14 @@ public class ClientSocketHandler extends AbstractSocketHandler {
             
             socket.setKeepAlive(true);
             
-            //            socket.setSoTimeout(timeout*1000);
+            //是否开启读取超时设置,开启就是设置大于的timeout,这样就会中止线程一直等待
+//                        socket.setSoTimeout(timeout*1000);
             socket.setTcpNoDelay(true);
     
             //5seconds
             String[] ipAndPort = selfIp.split(":");
             
-            socket.connect(new InetSocketAddress(ipAndPort[0],Integer.parseInt(ipAndPort[1])), 1 * 1000);
+            socket.connect(new InetSocketAddress(ipAndPort[0],Integer.parseInt(ipAndPort[1])), 10 * 1000);
             
             if (!socket.isConnected()) {
                

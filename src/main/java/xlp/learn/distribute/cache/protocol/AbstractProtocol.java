@@ -24,6 +24,8 @@ public abstract class AbstractProtocol implements Protocol {
     
     @Override
     public byte[] read(InputStream inputStream, byte[] typeBytes) throws IOException {
+    
+        byte[] eof = {-1};
         
         byte[] dst = new byte[0];
         
@@ -32,8 +34,16 @@ public abstract class AbstractProtocol implements Protocol {
         byte[] lenByte = new byte[4];//length is 4 byte
         
         //check start
-        inputStream.read(startOrEnd);
+        int readNum = inputStream.read(startOrEnd);
     
+        //流结束，是否需要断开连接 fixme
+        if(readNum == -1){
+    
+            logger.warn("到达流结束,断开连接");
+            
+            return eof;
+        }
+        
         boolean isStart = checkStart(startOrEnd);
     
         if (!isStart) {

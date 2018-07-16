@@ -1,4 +1,4 @@
-package xlp.learn.distribute.cache.server;
+package xlp.learn.distribute.cache.oio;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -6,6 +6,13 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +31,17 @@ public class DcacheServer implements Lifecycle {
     
     ServerSocket serverSocket;
     
-    private int port = 23456;//server port
+    private int port;
     
     private boolean running = false;
+    
+    int cpunum = Runtime.getRuntime().availableProcessors();
+    
+    BlockingQueue queue = new ArrayBlockingQueue(1);
+    
+    RejectedExecutionHandler rejectedHandler = new DiscardPolicy();
+    
+    Executor executor = new ThreadPoolExecutor(cpunum, cpunum*2000, 60, TimeUnit.SECONDS,queue,rejectedHandler);
     
     public DcacheServer(int port){
         
@@ -49,13 +64,16 @@ public class DcacheServer implements Lifecycle {
                     logger.info("server star success");
                     while (running) {
                         try {
+                            
                             Socket client = serverSocket.accept();
+                            
                             client.setKeepAlive(true);
                             client.setTcpNoDelay(true);
+                            
                             Handler handler = new ServerSocketHandler(client);
-                            //这里每次新一个线程，客服端一直端口然后连接的话，线程数量会非常多
-                            //使用线程池
-                            new Thread(handler).start();
+                            
+                            executor.execute(handler);
+                            
                             String clientIp = client.getRemoteSocketAddress().toString()
                                 .split(":")[0].substring(1);
                             activeConnections.put(clientIp, handler);

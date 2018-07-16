@@ -1,12 +1,19 @@
-package xlp.learn.distribute.cache.cache;
+package xlp.learn.distribute.cache.oio;
 
 import com.alibaba.fastjson.JSON;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xlp.learn.distribute.cache.cache.Dcache;
 import xlp.learn.distribute.cache.handler.Lifecycle;
 import xlp.learn.distribute.cache.handler.ClientSocketHandler;
 import xlp.learn.distribute.cache.monitor.MonitorReportWorker;
@@ -27,6 +34,18 @@ public class DcacheClient implements Dcache, Lifecycle {
     private static Map<String, Handler> activeConnections = new HashMap<>();
     
     private IdentityThread monitorReportThread;
+    
+    ConsistentHashingWithVN consist = new ConsistentHashingWithVN();
+    
+    RejectedExecutionHandler rejectHandler = new ThreadPoolExecutor.DiscardPolicy();
+    
+    BlockingQueue queue = new SynchronousQueue();
+    
+    int cpunum= Runtime.getRuntime().availableProcessors();
+    
+    int corenum = 1000;
+    
+    Executor executor = new ThreadPoolExecutor(corenum, corenum, 60, TimeUnit.SECONDS,queue,rejectHandler);
     
     public DcacheClient(String ipPorts){
         
@@ -49,7 +68,7 @@ public class DcacheClient implements Dcache, Lifecycle {
     
     public String write(Map.Entry<String, String> data, byte[] types) {
         
-        String server = ConsistentHashingWithVN.route(data.getKey());
+        String server = consist.route(data.getKey());
         
         try {
             
@@ -58,10 +77,17 @@ public class DcacheClient implements Dcache, Lifecycle {
             Handler handler = activeConnections.get(server);
     
             if(!handler.available()){
+    
+                //重新连接
+                handler.init();
                 
-                logger.error("网络连接异常");
-                
-                throw new IllegalStateException("网络连接异常");
+                //如果还是不可用
+                if(!handler.available()){
+                   
+                    logger.error("网络连接异常");
+    
+                    throw new IllegalStateException("网络连接异常");
+                }
             }
             
             byte[] readTypes = new byte[OpType.typeLength];
@@ -69,7 +95,7 @@ public class DcacheClient implements Dcache, Lifecycle {
             byte[] bytes = handler.writeAndRead(JSON.toJSONString(data), types, readTypes);
 
             String result = new String(bytes, "utf-8");
-
+            
             return result;
         
         } catch (IOException e) {
@@ -81,20 +107,21 @@ public class DcacheClient implements Dcache, Lifecycle {
     }
     
     
-    public void init() {
+    public void init() throws IOException {
     
         String[] ipPortArray = ipPorts.split(",");
-        
-        ConsistentHashingWithVN.init(ipPortArray);//init router
+    
+        consist.init(ipPortArray);//init router
         
         for (String ip : ipPortArray) {
         
             Handler handler = new ClientSocketHandler(ip);
-        
-            activeConnections.put(ip, handler);
+    
+            handler.init();
             
-            //
-            new Thread(handler).start();//new thread for new client point
+            activeConnections.put(ip, handler);
+    
+            executor.execute(handler);
         }
         
         //start monitor report

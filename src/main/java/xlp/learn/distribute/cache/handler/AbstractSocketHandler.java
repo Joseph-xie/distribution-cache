@@ -43,9 +43,6 @@ public abstract class AbstractSocketHandler implements Handler {
     
     public void run() {
         
-        //连接
-        init();
-        
         while (running) {
         
             process();
@@ -77,6 +74,10 @@ public abstract class AbstractSocketHandler implements Handler {
         
         }finally {
         
+            //关闭socket,短链接的实现方式
+            //或者加个keepAliveTimeOut
+//            socket.close();
+            
             lock.unlock();
         }
     }

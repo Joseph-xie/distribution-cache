@@ -45,6 +45,14 @@ public class ServerSocketHandler extends AbstractSocketHandler {
             
             byte[] bytes = protocol.read(socket.getInputStream(), types);
             
+            //流结束
+            if(bytes.length == 1 && bytes[0] == -1){
+                
+                setRunning(false);
+    
+                return;
+            }
+            
             //通常读取的数据错误，直接丢弃
             if (bytes.length < 1) {
             

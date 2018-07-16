@@ -19,32 +19,42 @@ public class ConsistentHashingWithVN {
     
     private static Logger logger = LoggerFactory.getLogger(ConsistentHashingWithVN.class);
     
-    private static List<String> realNodes = new LinkedList<String>();
+    private List<String> realNodes = new LinkedList<String>();
     
-    private static SortedMap<Long, String> virtualNodes = new TreeMap<Long, String>();
+    private SortedMap<Long, String> virtualNodes = new TreeMap<Long, String>();
     
-    public static void init(String[] servers) {
+    public void init(String[] servers) {
         
         for (int i = 0; i < servers.length; i++) {
+            
             realNodes.add(servers[i]);
         }
         
         for (String str : realNodes) {
+            
             for (int i = 0; i < VIRTUAL_NODES; i++) {
+            
                 String virtualNodeName = str + "&&VN" + String.valueOf(i);
+            
                 long hash = fnv132Hash.hash(virtualNodeName);
-                logger.info("虚拟节点[" + virtualNodeName + "]被添加, hash值为" + hash);
+            
+//                logger.info("虚拟节点[" + virtualNodeName + "]被添加, hash值为" + hash);
+            
                 virtualNodes.put(hash, virtualNodeName);
             }
         }
     }
     
-    public static String route(String node) {
+    public String route(String node) {
         
         long hash = fnv132Hash.hash(node);
+        
         SortedMap<Long, String> subMap = virtualNodes.tailMap(hash);
+        
         Long i = subMap.firstKey();
+        
         String virtualNode = subMap.get(i);
+        
         return virtualNode.substring(0, virtualNode.indexOf("&&"));
     }
 }
