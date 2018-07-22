@@ -2,6 +2,10 @@ package xlp.learn.distribute.cache.oio;
 
 import com.alibaba.fastjson.JSON;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,13 +18,18 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xlp.learn.distribute.cache.cache.Dcache;
+import xlp.learn.distribute.cache.handler.NioClientMessageHandler;
 import xlp.learn.distribute.cache.handler.Lifecycle;
-import xlp.learn.distribute.cache.handler.ClientSocketHandler;
+import xlp.learn.distribute.cache.handler.MessageToByte;
+import xlp.learn.distribute.cache.handler.OioClientMessageHandler;
 import xlp.learn.distribute.cache.monitor.MonitorReportWorker;
 import xlp.learn.distribute.cache.handler.Handler;
 import xlp.learn.distribute.cache.protocol.OpType;
+import xlp.learn.distribute.cache.result.InvokeResult;
 import xlp.learn.distribute.cache.route.ConsistentHashingWithVN;
 import xlp.learn.distribute.cache.monitor.thread.IdentityThread;
+import xlp.learn.distribute.cache.support.DefaultFuture;
+import xlp.learn.distribute.cache.support.OioSocketAttach;
 
 /**
  * Created by lpxie on 2016/8/27.
@@ -32,6 +41,8 @@ public class DcacheClient implements Dcache, Lifecycle {
     public String ipPorts = "";
     
     private static Map<String, Handler> activeConnections = new HashMap<>();
+    
+    Map<String,Socket> channelMap = new HashMap<>();
     
     private IdentityThread monitorReportThread;
     
@@ -45,7 +56,12 @@ public class DcacheClient implements Dcache, Lifecycle {
     
     int corenum = 1000;
     
+    MessageToByte messageToByte = new MessageToByte();
+    
     Executor executor = new ThreadPoolExecutor(corenum, corenum, 60, TimeUnit.SECONDS,queue,rejectHandler);
+    
+    OioClientMessageHandler messageHandler = new OioClientMessageHandler();
+    
     
     public DcacheClient(String ipPorts){
         
@@ -74,30 +90,38 @@ public class DcacheClient implements Dcache, Lifecycle {
             
             //这里线程安全问题，当多个线程同时调用这个方法，导致多个线程返回同一个handler，
             // handler必须同时只能被一个线程使用
-            Handler handler = activeConnections.get(server);
+//            Handler handler = activeConnections.get(server);
     
-            if(!handler.available()){
-    
-                //重新连接
-                handler.init();
-                
-                //如果还是不可用
-                if(!handler.available()){
-                   
-                    logger.error("网络连接异常");
-    
-                    throw new IllegalStateException("网络连接异常");
-                }
-            }
+            Socket socket = channelMap.get(server);
             
-            byte[] readTypes = new byte[OpType.typeLength];
     
-            byte[] bytes = handler.writeAndRead(JSON.toJSONString(data), types, readTypes);
-
-            String result = new String(bytes, "utf-8");
-            
-            return result;
+            if(!socket.isConnected()){
         
+                logger.error("网络连接异常");
+        
+                throw new IllegalStateException("网络连接异常");
+            }
+    
+            InvokeResult request = new InvokeResult();
+    
+            request.setTypes(types);
+    
+            request.setMsg(JSON.toJSONString(data));
+    
+            ByteBuffer byteBuffer = messageToByte.encode(request);
+    
+            byteBuffer.flip();
+    
+            socket.getOutputStream().write(byteBuffer.array());
+    
+            socket.getOutputStream().flush();
+            
+            DefaultFuture future = new DefaultFuture(request, 1000);
+    
+            InvokeResult response = (InvokeResult)future.get();
+    
+            return (String) response.getMsg();
+            
         } catch (IOException e) {
             
             logger.warn(data.getKey() + " to " + server + " failed by\n" + e.getMessage());
@@ -106,22 +130,40 @@ public class DcacheClient implements Dcache, Lifecycle {
         return "";
     }
     
-    
     public void init() throws IOException {
     
         String[] ipPortArray = ipPorts.split(",");
     
+        int tn = ipPortArray.length;
+    
+        BlockingQueue queue = new SynchronousQueue();
+    
+        RejectedExecutionHandler handler = new ThreadPoolExecutor.DiscardPolicy();
+        
+        Executor executor = new ThreadPoolExecutor(tn,tn,60L,TimeUnit.SECONDS,queue,handler);
+        
         consist.init(ipPortArray);//init router
         
         for (String ip : ipPortArray) {
-        
-            Handler handler = new ClientSocketHandler(ip);
     
-            handler.init();
+            Socket socket = new Socket();
+    
+            socket.setKeepAlive(true);
+    
+            //是否开启读取超时设置,开启就是设置大于的timeout,这样就会中止线程一直等待
+            //                        socket.setSoTimeout(timeout*1000);
+            socket.setTcpNoDelay(true);
+    
+            //5seconds
+            String[] ipAndPort = ip.split(":");
+    
+            socket.connect(new InetSocketAddress(ipAndPort[0], Integer.parseInt(ipAndPort[1])), 10 * 1000);
+    
+            OioSocketAttach attach = new OioSocketAttach(socket,messageHandler);
+    
+            executor.execute(attach);
             
-            activeConnections.put(ip, handler);
-    
-            executor.execute(handler);
+            channelMap.put(ip,socket);
         }
         
         //start monitor report

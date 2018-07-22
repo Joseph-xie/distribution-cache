@@ -2,12 +2,14 @@ package xlp.learn.distribute.cache.handler;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xlp.learn.distribute.cache.protocol.MyProtocol;
 import xlp.learn.distribute.cache.protocol.Protocol;
+import xlp.learn.distribute.cache.result.InvokeResult;
 
 /**
  * Created by lpxie on 2016/8/23.
@@ -24,6 +26,8 @@ public abstract class AbstractSocketHandler implements Handler {
     private Lock lock = new ReentrantLock();
     
     private Logger logger = LoggerFactory.getLogger(AbstractSocketHandler.class);
+    
+    MessageToByte messageToByte = new MessageToByte();
     
     private volatile boolean running = true;
     
@@ -65,7 +69,15 @@ public abstract class AbstractSocketHandler implements Handler {
         lock.lock();
         
         try {
-        
+    
+            InvokeResult invokeResult = new InvokeResult();
+            invokeResult.setMsg(message);
+            invokeResult.setTypes(writeType);
+    
+            ByteBuffer byteBuffer = messageToByte.encode(invokeResult);
+    
+            byteBuffer.flip();
+            
             protocol.write(socket.getOutputStream(), message, writeType);
         
             byte[] bytes = protocol.read(socket.getInputStream(), readType);

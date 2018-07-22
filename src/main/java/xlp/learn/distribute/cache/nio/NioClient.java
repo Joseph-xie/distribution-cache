@@ -13,8 +13,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xlp.learn.distribute.cache.cache.Dcache;
-import xlp.learn.distribute.cache.handler.ClientMessageHandler;
-import xlp.learn.distribute.cache.handler.MessageHandler;
+import xlp.learn.distribute.cache.handler.NioClientMessageHandler;
+import xlp.learn.distribute.cache.handler.NioMessageHandler;
 import xlp.learn.distribute.cache.handler.MessageToByte;
 import xlp.learn.distribute.cache.support.NioSocketAttach;
 import xlp.learn.distribute.cache.protocol.OpType;
@@ -38,7 +38,7 @@ public class NioClient implements Dcache,Runnable{
     
     MessageToByte messageToByte = new MessageToByte();
     
-    MessageHandler messageHandler = new ClientMessageHandler();
+    NioMessageHandler messageHandler = new NioClientMessageHandler();
     
     public NioClient(String ips) throws IOException {
         

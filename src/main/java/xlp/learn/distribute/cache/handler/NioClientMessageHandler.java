@@ -4,7 +4,7 @@ import java.nio.channels.SocketChannel;
 import xlp.learn.distribute.cache.result.InvokeResult;
 import xlp.learn.distribute.cache.support.DefaultFuture;
 
-public class ClientMessageHandler implements MessageHandler {
+public class NioClientMessageHandler implements NioMessageHandler {
     
     @Override
     public void process(

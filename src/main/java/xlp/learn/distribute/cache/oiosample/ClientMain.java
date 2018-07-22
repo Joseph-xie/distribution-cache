@@ -9,7 +9,7 @@ public class ClientMain {
     public static void main(String[] args){
     
     
-        for(int i = 0;i<1000;i++){
+        for(int i = 0;i<1;i++){
             Thread thread = new Thread(new Runnable() {
     
                 @Override
@@ -50,7 +50,7 @@ public class ClientMain {
             
                 String readValue = client.get(key);
             
-//                System.out.println("读取的值:" + readValue);
+                System.out.println("读取的值:" + readValue);
             
                 int seed = random.nextInt();
             

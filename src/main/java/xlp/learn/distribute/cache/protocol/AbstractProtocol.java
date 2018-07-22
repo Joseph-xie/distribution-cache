@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +84,88 @@ public abstract class AbstractProtocol implements Protocol {
         }
         
         return dst;
+    }
+    
+    public ByteBuffer read(InputStream inputStream) throws  IOException{
+    
+        byte[] eof = {-1};
+    
+        byte[] dst = new byte[0];
+    
+        byte[] startOrEnd = new byte[3];
+    
+        byte[] lenByte = new byte[4];//length is 4 byte
+    
+        byte[] types = new byte[OpType.typeLength];
+    
+        byte[] idBytes = new byte[8];
+        
+        //check start
+        int readNum = inputStream.read(startOrEnd);
+    
+        //流结束，需要断开连接
+        if(readNum == -1){
+        
+            logger.warn("到达流结束,断开连接");
+        
+            ByteBuffer.wrap(eof);
+        }
+    
+        boolean isStart = checkStart(startOrEnd);
+    
+        if (!isStart) {
+        
+            logger.warn("data is not completely,do not execute:" + new String(startOrEnd));
+        
+            return ByteBuffer.wrap(dst);
+        }
+    
+        //check type
+        inputStream.read(types);
+    
+        inputStream.read(idBytes);
+        
+        //read data
+        inputStream.read(lenByte);
+    
+        int realLength = byteArrayToInt(lenByte);
+    
+        if (realLength > 0) {
+        
+            byte[] messByte = new byte[realLength];
+        
+            inputStream.read(messByte, 0, realLength);//first is type
+        
+            dst = messByte;
+        }
+    
+        //check end ,reuse sync
+        inputStream.read(startOrEnd);
+    
+        boolean isEnd = checkEnd(startOrEnd);
+    
+        if (!isEnd) {
+        
+            logger.warn("not complete data");
+        
+            return ByteBuffer.wrap(new byte[0]);
+        }
+    
+        //计算长度
+        int length = startOrEnd.length + types.length + idBytes.length + lenByte.length + realLength+startOrEnd.length;
+        
+        ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+    
+        byteBuffer.put(start);
+        byteBuffer.put(types);
+        byteBuffer.put(idBytes);
+        byteBuffer.put(lenByte);
+        byteBuffer.put(dst);
+        byteBuffer.put(end);
+        
+        byteBuffer.flip();
+        
+        return byteBuffer;
     }
     
     public boolean write(OutputStream outputStream, String message, byte[] types) {

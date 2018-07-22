@@ -10,8 +10,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xlp.learn.distribute.cache.handler.Lifecycle;
-import xlp.learn.distribute.cache.handler.MessageHandler;
-import xlp.learn.distribute.cache.handler.ServerMessageHandler;
+import xlp.learn.distribute.cache.handler.NioMessageHandler;
+import xlp.learn.distribute.cache.handler.NioServerMessageHandler;
 import xlp.learn.distribute.cache.support.NioSocketAttach;
 
 public class NioServer implements Lifecycle {
@@ -22,7 +22,7 @@ public class NioServer implements Lifecycle {
     
     boolean running = true;
     
-    MessageHandler messageHandler = new ServerMessageHandler();
+    NioMessageHandler messageHandler = new NioServerMessageHandler();
     
     public NioServer(int port){
         

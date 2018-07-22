@@ -62,6 +62,7 @@ public class DcacheServer implements Lifecycle {
                 public void run() {
                     
                     logger.info("server star success");
+                   
                     while (running) {
                         try {
                             
