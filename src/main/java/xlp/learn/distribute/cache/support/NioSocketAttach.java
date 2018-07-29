@@ -12,7 +12,7 @@ import xlp.learn.distribute.cache.handler.Codec.Result;
 import xlp.learn.distribute.cache.handler.NioMessageHandler;
 import xlp.learn.distribute.cache.result.InvokeResult;
 
-public class NioSocketAttach {
+public class NioSocketAttach extends BaseAttach{
     
     ByteBuffer cumulate = null;
     
@@ -23,7 +23,7 @@ public class NioSocketAttach {
     
     NioMessageHandler messageHandler;
     
-    ByteToMessage byteToMessage = new ByteToMessage();
+  
     
     
     public NioSocketAttach(SelectableChannel ch,SelectionKey key, NioMessageHandler messageHandler){
@@ -35,7 +35,8 @@ public class NioSocketAttach {
         this.messageHandler = messageHandler;
     }
     
-    public void read() throws IOException {
+    //这个必须同一时刻这能一个线程处理
+    public synchronized void read() throws IOException {
         
         SocketChannel channel = (SocketChannel)selectableChannel;
     
@@ -43,6 +44,7 @@ public class NioSocketAttach {
         
         int readnums = channel.read(byteBuffer);
         
+        //流结束
         if(readnums == -1){
             
             selectionKey.cancel();
@@ -63,24 +65,27 @@ public class NioSocketAttach {
         if(first){
     
             cumulate = byteBuffer;
+            
         }else{
     
             cumulate = cumulate(cumulate, byteBuffer);
         }
     
-        Result result = decode(cumulate, outs);
+        Result result = decodeNio(cumulate, outs);
+        
+        //这里可能解析了一个或多个obj,但是后面的还有部分数据不完整
+        //交给业务端处理
+        //如果有解析成功数据就直接处理
+        for(Object obj : outs){
+        
+            InvokeResult invokeResult = (InvokeResult)obj;
+        
+            messageHandler.process(invokeResult,channel);
+        }
         
         if(result == Result.NORMAL){
             
-            //交给业务端处理
-            for(Object obj : outs){
-    
-                InvokeResult invokeResult = (InvokeResult)obj;
-                
-                messageHandler.process(invokeResult,channel);
-            }
-            
-            //没有字节数据就清空
+            //没有字节数据就清空,避免下次处理重复数据
             if(!cumulate.hasRemaining()){
                 
                 cumulate = null;
@@ -91,54 +96,5 @@ public class NioSocketAttach {
             //没有完整的数据包，返回，等待下一次有消息到了再处理
             return;
         }
-    }
-    
-    
-    Result decode(ByteBuffer byteBuffer,List<Object> outs){
-    
-    
-        while (byteBuffer.hasRemaining()){
-    
-            try {
-                
-                byteBuffer.flip();
-    
-                byteBuffer.mark();
-                
-                Object obj = byteToMessage.decode(byteBuffer);
-        
-                if(obj == Result.NEED_MORE_INPUT){
-            
-                    byteBuffer.reset();
-            
-                    return Result.NEED_MORE_INPUT;
-                }
-    
-    
-                outs.add(obj);
-                
-            }catch (Exception exp){
-                
-                exp.printStackTrace();
-                
-                byteBuffer.reset();
-    
-                return Result.NEED_MORE_INPUT;
-        
-            }
-        }
-    
-        return Result.NORMAL;
-    }
-    
-    ByteBuffer cumulate(ByteBuffer cumulate,ByteBuffer dst){
-    
-        ByteBuffer newCumulate = ByteBuffer.allocate(cumulate.capacity()+dst.capacity());
-    
-        newCumulate.put(cumulate);
-    
-        newCumulate.put(dst);
-        
-        return newCumulate;
     }
 }

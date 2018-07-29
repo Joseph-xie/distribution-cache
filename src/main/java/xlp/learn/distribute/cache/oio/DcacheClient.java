@@ -5,9 +5,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
@@ -18,12 +16,10 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xlp.learn.distribute.cache.cache.Dcache;
-import xlp.learn.distribute.cache.handler.NioClientMessageHandler;
 import xlp.learn.distribute.cache.handler.Lifecycle;
 import xlp.learn.distribute.cache.handler.MessageToByte;
 import xlp.learn.distribute.cache.handler.OioClientMessageHandler;
 import xlp.learn.distribute.cache.monitor.MonitorReportWorker;
-import xlp.learn.distribute.cache.handler.Handler;
 import xlp.learn.distribute.cache.protocol.OpType;
 import xlp.learn.distribute.cache.result.InvokeResult;
 import xlp.learn.distribute.cache.route.ConsistentHashingWithVN;
@@ -39,8 +35,6 @@ public class DcacheClient implements Dcache, Lifecycle {
     private final static Logger logger = LoggerFactory.getLogger(DcacheClient.class);
     
     public String ipPorts = "";
-    
-    private static Map<String, Handler> activeConnections = new HashMap<>();
     
     Map<String,Socket> channelMap = new HashMap<>();
     
@@ -87,10 +81,6 @@ public class DcacheClient implements Dcache, Lifecycle {
         String server = consist.route(data.getKey());
         
         try {
-            
-            //这里线程安全问题，当多个线程同时调用这个方法，导致多个线程返回同一个handler，
-            // handler必须同时只能被一个线程使用
-//            Handler handler = activeConnections.get(server);
     
             Socket socket = channelMap.get(server);
             
@@ -180,18 +170,6 @@ public class DcacheClient implements Dcache, Lifecycle {
         
         logger.info("monitorReport stop successfully");
         
-        Iterator<Map.Entry<String, Handler>> iterator = activeConnections.entrySet().iterator();
-        
-        while (iterator.hasNext()) {
-        
-            Map.Entry<String, Handler> entry = iterator.next();
-        
-            logger.info("client " + entry.getKey() + " stop ...");
-        
-            entry.getValue().destroy();
-        
-            logger.info("client " + entry.getKey() + " stop successfully");
-        }
     }
     
     @Override
