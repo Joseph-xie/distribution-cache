@@ -26,9 +26,16 @@
 
         <file_encoding>UTF-8</file_encoding>
 
+        <netty4_version>4.0.35.Final</netty4_version>
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty4_version}</version>
+        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
