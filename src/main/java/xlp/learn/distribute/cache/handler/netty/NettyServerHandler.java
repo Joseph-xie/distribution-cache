@@ -12,9 +12,11 @@ import xlp.learn.distribute.cache.result.InvokeResult;
 import xlp.learn.distribute.cache.store.ManagerInstance;
 import xlp.learn.distribute.cache.util.Utils;
 
+
 public class NettyServerHandler extends ChannelDuplexHandler {
     
     Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
+    
     
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {

@@ -55,14 +55,15 @@ public class NettyServer {
             .childOption(ChannelOption.SO_REUSEADDR, Boolean.TRUE)
             .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
             .childHandler(new ChannelInitializer<NioSocketChannel>() {
-                NettyByteToMessage byteToMessage = new NettyByteToMessage();
-    
-                NettyMessageToByte messageToByte = new NettyMessageToByte();
-    
-                NettyServerHandler serverHandler = new NettyServerHandler();
-                
+               
                 @Override
                 protected void initChannel(NioSocketChannel ch) throws Exception {
+    
+                    NettyByteToMessage byteToMessage = new NettyByteToMessage();
+    
+                    NettyMessageToByte messageToByte = new NettyMessageToByte();
+    
+                    NettyServerHandler serverHandler = new NettyServerHandler();
                     
                     ch.pipeline()
                         .addLast("decoder",byteToMessage)

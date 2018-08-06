@@ -62,13 +62,14 @@ public class NettyClient implements Dcache {
     
         bootstrap.handler(new ChannelInitializer() {
         
-            NettyByteToMessage byteToMessage = new NettyByteToMessage();
-            
-            NettyMessageToByte messageToByte = new NettyMessageToByte();
-            
-            NettyClientHandler clientHandler = new NettyClientHandler();
-            
             protected void initChannel(Channel ch) throws Exception {
+    
+                NettyByteToMessage byteToMessage = new NettyByteToMessage();
+    
+                NettyMessageToByte messageToByte = new NettyMessageToByte();
+    
+                NettyClientHandler clientHandler = new NettyClientHandler();
+                
                 ch.pipeline()
                     .addLast("decoder",byteToMessage)
                     .addLast("encoder", messageToByte)
